@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Node version="1.0">
+  <metadata>
+    <title value="Output"/>
+    <author value="George Ridout"/>
+    <version value="1.0.0"/>
+    <colour value="#E8A2DD"/>
+  </metadata>
+  <input text="Left"/>
+  <input text="Right"/>
+</Node>

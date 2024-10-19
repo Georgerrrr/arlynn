@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Node version="1.0">
+  <metadata>
+    <title value="Audio To Amplitude"/>
+    <author value="George Ridout"/>
+    <version value="1.0.0"/>
+    <colour value="#E8E8A2"/>
+  </metadata>
+  <output text="Gain"/>
+  <input text="Audio"/>
+  <attribute text="conversion" control="optionbox">
+    <position>
+      <coordinates x="8" y="0"/>
+      <size width="96" height="48"/>
+      <anchor value="s"/>
+    </position>
+    <options>
+      <option image="cutoff-icon.bmp"/>
+      <option image="shift-icon.bmp"/>
+    </options>
+    <default value="0"/>
+    <options_per_row value="2"/>
+  </attribute>
+
+  <attribute text="min" control="dial">
+    <position>
+      <coordinates x="139" y="-51"/>
+      <anchor value="s"/>
+    </position>
+    <colour value="#1212FE"/>
+    <minimum value="0.0"/>
+    <maximum value="1.0"/>
+    <default value="0.5"/>
+    <micro value="0.005"/>
+  </attribute>
+</Node>

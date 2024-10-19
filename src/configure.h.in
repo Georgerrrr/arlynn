@@ -1,0 +1,8 @@
+#ifndef CONFIGURE_H 
+#define CONFIGURE_H 
+
+#define BUILD_DEBUG "@BUILD_DEBUG@" 
+#define RESOURCE_PATH "@RESOURCE_PATH@"
+#define NODE_PATH "@NODE_PATH@"
+
+#endif // CONFIGURE_H

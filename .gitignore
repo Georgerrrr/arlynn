@@ -1,0 +1,16 @@
+.ccls
+build/
+.vscode
+.vs
+
+configure.h
+
+docs/doxygen/
+docs/Doxyfile
+
+compile_commands.json
+
+*.docx
+*.backup
+
+*.swp

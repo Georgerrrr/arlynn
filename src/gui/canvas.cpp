@@ -26,6 +26,8 @@ namespace gui {
     Bind(wxEVT_MOUSEWHEEL, &Canvas::onMouseScroll, this);
 
     Bind(wxEVT_KEY_DOWN, &Canvas::onKeyPress, this);
+
+    Bind(wxEVT_CONTEXT_MENU, &Canvas::onContextMenuAppear, this);
   }
 
   void Canvas::addNode(const std::filesystem::path& xml, std::shared_ptr<core::Node> node) {
@@ -264,6 +266,49 @@ namespace gui {
     }
     Refresh();
     evt.Skip();
+  }
+
+  void Canvas::onContextMenuAppear(wxContextMenuEvent& evt) {
+    auto position = evt.GetPosition();
+    wxMenu menu;
+
+    if (evt.GetPosition() == wxDefaultPosition) {
+      position = wxPoint(GetSize().GetWidth() / 2, GetSize().GetHeight() / 2);
+      buildDefaultContextMenu(menu);
+    } else {
+      position = ScreenToClient(evt.GetPosition());
+      const wxPoint worldPos = m_scroll.screenToWorld(position);
+      auto clickIter = std::find_if(
+          m_nodes.rbegin(), m_nodes.rend(),
+          [worldPos](auto& node)
+          { return node->getRect().Contains(worldPos.x, worldPos.y); });
+      if (clickIter == m_nodes.rend())
+        buildDefaultContextMenu(menu);
+      else {
+        for (auto& node : m_nodes)
+          node->setSelected(false);
+        (*clickIter).get()->setSelected(true);
+        m_selectedNode = (*clickIter);
+        Refresh();
+        buildNodeContextMenu(menu);
+      }
+    }
+
+    PopupMenu(&menu, position);
+    evt.Skip();
+  }
+
+  void Canvas::buildDefaultContextMenu(wxMenu& menu) {
+    auto clear = menu.Append(wxID_ANY, "New");
+    auto save = menu.Append(wxID_ANY, "Save");
+    auto saveas = menu.Append(wxID_ANY, "Save As");
+    auto load = menu.Append(wxID_ANY, "Open");
+    auto viewer = menu.Append(wxID_ANY, "Viewer");
+    auto settings = menu.Append(wxID_ANY, "Settings");
+  }
+
+  void Canvas::buildNodeContextMenu(wxMenu& menu) {
+    auto remove = menu.Append(wxID_ANY, "Delete Node");
   }
 
   void Canvas::drawConnection(wxGraphicsContext* gc, const wxPoint& start, const wxPoint& end, const wxColour& colour, Link::Direction direction) {

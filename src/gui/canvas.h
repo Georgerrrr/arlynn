@@ -72,6 +72,10 @@ namespace gui {
 
     void onKeyPress(wxKeyEvent& evt);
 
+    void onContextMenuAppear(wxContextMenuEvent& evt);
+    void buildDefaultContextMenu(wxMenu& menu);
+    void buildNodeContextMenu(wxMenu& menu);
+
     Scroll m_scroll;
     wxPoint m_lastMousePos;
     std::list<std::shared_ptr<CanvasNode>> m_nodes;

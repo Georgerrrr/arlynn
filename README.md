@@ -16,13 +16,12 @@ By connecting nodes which either generate some signal, or affect the signal in a
 ```
 mkdir build
 cd build 
-cmake -S .. -B . -Dnogui=off -DCMAKE_BUILD_TYPE=Release 
+cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release 
 cmake --build .
 ```
 
 ## Todo
 
- - Remove nodes from canvas
  - Add midi support 
  - Add more nodes
  - Add undo

@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "core/project.h"
 
 #include "canvas.h"
@@ -57,51 +59,30 @@ namespace gui {
     }
   }
 
-  template<class... Ts>
-  struct overloaded : Ts... { using Ts::operator()...; };
-
-  void CanvasNode::drawSlot(wxGraphicsContext* gc, const slot_t& slot, size_t index) {
+  void CanvasNode::drawSlot(wxGraphicsContext* gc, const Slot& slot, size_t index) {
     gc->SetPen(*wxBLACK_PEN);
+    gc->SetBrush(wxBrush(slot.colour));
 
-    std::visit(overloaded{
-        [&](const InputSlot& slot) {
-          gc->SetBrush(wxBrush(slot.colour));
-          gc->DrawRectangle(m_rect.x + slot.rect.x, m_rect.y + slot.rect.y, slot.rect.width, slot.rect.height);
-          gc->DrawText(slot.name, m_rect.x + slot.rect.width + m_slotTextSpacing, m_rect.y + slot.rect.y - 6);
-          if (slot.connection != nullptr) {
-            auto& output = std::get<OutputSlot>(slot.connection->getSlots().at(slot.connectionIndex));
-            const wxPoint start(
-                m_rect.x + slot.rect.x - 1,
-                m_rect.y + slot.rect.y + 6);
-            const wxPoint end(
-                slot.connection->getRect().x + output.rect.GetRight() + 3,
-                slot.connection->getRect().y + output.rect.y + 6);
-            Canvas::drawConnection(gc, start, end, slot.colour);
-          }
-        },
-        [&](const OutputSlot& slot) {
-          gc->SetBrush(wxBrush(slot.colour));
-          wxDouble textWidth;
-          gc->GetTextExtent(slot.name, &textWidth, NULL);
-          gc->DrawRectangle(m_rect.x + slot.rect.x, m_rect.y + slot.rect.y, slot.rect.width, slot.rect.height);
-          gc->DrawText(slot.name, m_rect.x + slot.rect.x - textWidth - m_slotTextSpacing, m_rect.y + slot.rect.y - 6);
-        }
-        }, slot);
-  }
+    gc->DrawRectangle(m_rect.x + slot.rect.x, m_rect.y + slot.rect.y, slot.rect.width, slot.rect.height);
 
-  void CanvasNode::setConnection(size_t index, std::shared_ptr<CanvasNode> other=nullptr, size_t otherIndex=0) {
-    auto& input = std::get<InputSlot>(m_slots.at(index));
-    if (other == nullptr) {
-      m_node->setInput(input.index);
-      input.connection = nullptr;
-      input.connection = 0;
-      return;
+    wxDouble textWidth;
+    gc->GetTextExtent(slot.name, &textWidth, NULL);
+    wxPoint textPos(m_rect.x + slot.rect.x - textWidth - m_slotTextSpacing, m_rect.y + slot.rect.y - 6);
+
+    if (slot.direction == direction_t::input) {
+      textPos.x = m_rect.x + slot.rect.width + m_slotTextSpacing;
     }
-    auto& output = std::get<OutputSlot>(other->m_slots.at(otherIndex));
-    auto error = m_node->setInput(input.index, other->m_node, output.index);
-    if (error == 0 && (other.get() != this)) {
-      input.connection = other;
-      input.connectionIndex = otherIndex;
+    gc->DrawText(slot.name, textPos.x, textPos.y);
+
+    if (slot.direction == direction_t::input && slot.connections[0] != nullptr) {
+      auto otherSlot = slot.connections[0];
+      const wxPoint start(
+          m_rect.x + slot.rect.x - 1,
+          m_rect.y + slot.rect.y + 6);
+      const wxPoint end(
+          otherSlot->parent->getRect().x + otherSlot->rect.GetRight() + 3,
+          otherSlot->parent->getRect().y + otherSlot->rect.y + 6);
+      Canvas::drawConnection(gc, start, end, slot.colour);
     }
   }
 
@@ -154,12 +135,11 @@ namespace gui {
     auto& input = m_node->getInput(m_inputCount);
     const auto yPos = (m_titleBarLine + m_slotTopPadding + (m_slotDistance + m_slotSize) * m_slots.size()); 
     m_slots.push_back(
-        InputSlot{
+        Slot(this, direction_t::input, m_inputCount,
           inputNode.attribute("text").value(),
           getColourFromSignal(input.inputType),
-          wxRect(0, yPos, m_slotSize, m_slotSize),
-          m_inputCount
-        });
+          wxRect(0, yPos, m_slotSize, m_slotSize)
+        ));
     m_inputCount++;
   }
 
@@ -167,12 +147,11 @@ namespace gui {
     auto& output = m_node->getOutput(m_outputCount);
     const auto yPos = (m_titleBarLine + m_slotTopPadding + (m_slotDistance + m_slotSize) * m_slots.size()); 
     m_slots.push_back(
-        OutputSlot{
+        Slot(this, direction_t::output, m_outputCount,
           outputNode.attribute("text").value(),
           getColourFromSignal(core::getOutputFormat(output)),
-          wxRect((m_rect.width - m_slotSize), yPos, m_slotSize, m_slotSize),
-          m_outputCount
-        });
+          wxRect((m_rect.width - m_slotSize), yPos, m_slotSize, m_slotSize)
+        ));
     m_outputCount++;
   }
 
@@ -251,6 +230,45 @@ namespace gui {
         totalHeight = std::max(totalHeight, rect.y + rect.height + m_bottomPadding);
       }
       m_rect.SetHeight(totalHeight);
+  }
+
+  Slot::Slot(CanvasNode* parent, direction_t direction, size_t index,
+        const wxString& name, const wxColour& colour, const wxRect& rect)
+    : parent(parent)
+    , direction(direction)
+    , index(index)
+    , name(name)
+    , colour(colour)
+    , rect(rect)
+  {
+    if (direction == direction_t::input)
+      connections.resize(1, nullptr);
+  }
+
+  void Slot::setConnection(Slot* newConnection) {
+    if (direction != direction_t::input) return;
+
+    if (newConnection == nullptr) {
+      parent->m_node->setInput(index);
+      if (connections[0] != nullptr)
+        connections[0]->connections.erase(std::remove_if(connections[0]->connections.begin(),
+                              connections[0]->connections.end(),
+                              [this](Slot* slot) { return slot == this; }),
+                              connections[0]->connections.end());
+      connections[0] = nullptr;
+      return;
+    }
+    auto error = parent->m_node->setInput(index, newConnection->parent->m_node, newConnection->index);
+    if (error == 0 && newConnection->parent != this->parent) {
+      if (connections[0] != nullptr) {
+        connections[0]->connections.erase(std::remove_if(connections[0]->connections.begin(),
+                              connections[0]->connections.end(),
+                              [this](Slot* slot) { return slot == this; }),
+                              connections[0]->connections.end());
+      }
+      connections[0] = newConnection;
+      newConnection->connections.push_back(this);
+    }
   }
 
 } // namespace gui

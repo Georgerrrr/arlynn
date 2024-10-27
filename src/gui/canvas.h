@@ -38,27 +38,13 @@ namespace gui {
       }
     };
 
-    struct Link {
-      enum class Direction {
-        input,
-        output,
-      };
-      std::weak_ptr<CanvasNode> startNode;
-      size_t startIndex;
-      wxColour colour;
-      Direction direction;
-      void reset() {
-        startNode.reset();
-        startIndex = 0;
-      }
-    };
-
     public:
     Canvas(wxWindow* parent);
 
     void addNode(const std::filesystem::path& xml, std::shared_ptr<core::Node> node);
+    void removeNode(std::shared_ptr<CanvasNode> node);
 
-    static void drawConnection(wxGraphicsContext* gc, const wxPoint& start, const wxPoint& end, const wxColour& colour, Link::Direction direction=Link::Direction::input);
+    static void drawConnection(wxGraphicsContext* gc, const wxPoint& start, const wxPoint& end, const wxColour& colour, direction_t direction=direction_t::input);
 
     private:
     void onUpdate(wxPaintEvent& evt);
@@ -80,7 +66,7 @@ namespace gui {
     wxPoint m_lastMousePos;
     std::list<std::shared_ptr<CanvasNode>> m_nodes;
 
-    Link m_link;
+    Slot* m_link = nullptr;
     bool m_moving = false;
     std::weak_ptr<CanvasNode> m_selectedNode;
   };

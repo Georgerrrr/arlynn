@@ -35,6 +35,31 @@ namespace gui {
     Refresh();
   }
 
+  void Canvas::removeNode(std::shared_ptr<CanvasNode> node) {
+    if (node->getName() == "Output") return;
+
+    if (!m_selectedNode.expired()) 
+      if (m_selectedNode.lock() == node) m_selectedNode.reset();
+
+    for (auto& slot : node->getSlots()) {
+      if (slot.direction == direction_t::input) 
+        slot.setConnection();
+      else if (slot.direction == direction_t::output) {
+        for (Slot* connection : slot.connections) {
+          connection->setConnection();
+        }
+      }
+    }
+
+    m_nodes.erase(
+        std::remove_if(
+          m_nodes.begin(), m_nodes.end(),
+          [node](const auto& n) { return n == node; }),
+        m_nodes.end());
+
+    Refresh();
+  }
+
   void Canvas::onUpdate(wxPaintEvent& evt) {
     wxAutoBufferedPaintDC dc(this);
     dc.Clear();
@@ -50,18 +75,18 @@ namespace gui {
         node->onUpdate(gc);
       }
 
-      if (!m_link.startNode.expired()) {
-        auto linkNode = m_link.startNode.lock();
+      if (m_link != nullptr) {
         wxPoint startPos;
-        if (m_link.direction == Link::Direction::input) {
-          startPos.x = linkNode->getRect().x - 1;
-          startPos.y = 6 + linkNode->getRect().y + std::get<InputSlot>(linkNode->getSlots().at(m_link.startIndex)).rect.y;
+        const wxRect& linkRect = m_link->parent->getRect();
+        if (m_link->direction == direction_t::input) {
+          startPos.x = linkRect.x - 1;
+          startPos.y = 6 + linkRect.y + m_link->rect.y;
         }
-        if (m_link.direction == Link::Direction::output) {
-          startPos.x = linkNode->getRect().GetRight() + 3;
-          startPos.y = 6 + linkNode->getRect().y + std::get<OutputSlot>(linkNode->getSlots().at(m_link.startIndex)).rect.y;
+        if (m_link->direction == direction_t::output) {
+          startPos.x = linkRect.GetRight() + 3;
+          startPos.y = 6 + linkRect.y + m_link->rect.y;
         }
-        drawConnection(gc, startPos, m_lastMousePos, m_link.colour, m_link.direction);
+        drawConnection(gc, startPos, m_lastMousePos, m_link->colour, m_link->direction);
       }
 
       delete gc;
@@ -105,9 +130,6 @@ namespace gui {
     evt.Skip();
   }
 
-  template<class... Ts>
-  struct overloaded : Ts... { using Ts::operator()...; };
-
   void Canvas::nodeMouseDown(wxMouseEvent& evt) {
     if (m_selectedNode.expired()) return;
     const wxPoint worldPos = m_scroll.screenToWorld(evt.GetPosition());
@@ -127,35 +149,16 @@ namespace gui {
     }
 
     size_t i = 0;
-    for (auto& s : selected->getSlots()) {
-      std::visit(overloaded{
-          [&](const InputSlot& slot) {
-            auto rect = wxRect(
-                selected->getRect().x + slot.rect.x, 
-                selected->getRect().y + slot.rect.y,
-                slot.rect.width, slot.rect.height);
+    for (auto& slot : selected->getSlots()) {
+      const wxRect rect(
+          selected->getRect().x + slot.rect.x,
+          selected->getRect().y + slot.rect.y,
+          slot.rect.width, slot.rect.height);
+      if (!rect.Contains(worldPos))
+        continue;
 
-            if (!rect.Contains(worldPos)) return;
-            selected->setConnection(i, nullptr, 0);
-            m_link.startNode = selected;
-            m_link.startIndex= i;
-            m_link.colour = slot.colour;
-            m_link.direction = Link::Direction::input;
-          },
-          [&](const OutputSlot& slot) {
-            auto rect = wxRect(
-                selected->getRect().x + slot.rect.x, 
-                selected->getRect().y + slot.rect.y,
-                slot.rect.width, slot.rect.height);
-
-            if (!rect.Contains(worldPos)) return;
-            m_link.startNode = selected;
-            m_link.startIndex = i;
-            m_link.colour = slot.colour;
-            m_link.direction = Link::Direction::output;
-          }
-          }, s);
-      i++;
+      slot.setConnection();
+      m_link = &slot;
     }
   }
 
@@ -187,37 +190,29 @@ namespace gui {
 
     if (clickIter != m_nodes.rend()) {
 
-      if (!m_link.startNode.expired()) {
-        size_t i = 0;
-        for(auto& s : (*clickIter)->getSlots()) {
-          std::visit(overloaded{
-              [&](const InputSlot& slot) {
-                if (m_link.direction == Link::Direction::input) return;
-                auto rect = wxRect(
-                    (*clickIter)->getRect().x + slot.rect.x, 
-                    (*clickIter)->getRect().y + slot.rect.y,
-                    slot.rect.width, slot.rect.height);
-                if (!rect.Contains(worldPos)) return;
+      if (m_link != nullptr) {
+        for(auto& slot : (*clickIter)->getSlots()) {
+          if (m_link->direction == slot.direction)
+            continue;
 
-                (*clickIter)->setConnection(i, m_link.startNode.lock(), m_link.startIndex);
-              },
-              [&](const OutputSlot& slot) {
-                if (m_link.direction == Link::Direction::output) return;
-                auto rect = wxRect(
-                    (*clickIter)->getRect().x + slot.rect.x, 
-                    (*clickIter)->getRect().y + slot.rect.y,
-                    slot.rect.width, slot.rect.height);
-                if (!rect.Contains(worldPos)) return;
+          const wxRect rect(
+              (*clickIter)->getRect().x + slot.rect.x, 
+              (*clickIter)->getRect().y + slot.rect.y,
+              slot.rect.width, slot.rect.height);
+          if (!rect.Contains(worldPos))
+            continue;
 
-                m_link.startNode.lock()->setConnection(m_link.startIndex, (*clickIter), i);
-              }
-              }, s);
-          i++;
+          if (slot.direction == direction_t::input) {
+            slot.setConnection(m_link);
+          }
+          else if (slot.direction == direction_t::output) {
+            m_link->setConnection(&slot);
+          }
         }
       }
     } 
 
-    m_link.reset();
+    m_link = nullptr;
     Refresh();
     evt.Skip();
   }
@@ -309,9 +304,14 @@ namespace gui {
 
   void Canvas::buildNodeContextMenu(wxMenu& menu) {
     auto remove = menu.Append(wxID_ANY, "Delete Node");
+    Bind(
+        wxEVT_MENU, [this](wxCommandEvent& evt) {
+          if (m_selectedNode.expired()) return;
+          removeNode(m_selectedNode.lock());
+        }, remove->GetId());
   }
 
-  void Canvas::drawConnection(wxGraphicsContext* gc, const wxPoint& start, const wxPoint& end, const wxColour& colour, Link::Direction direction) {
+  void Canvas::drawConnection(wxGraphicsContext* gc, const wxPoint& start, const wxPoint& end, const wxColour& colour, direction_t direction) {
     auto easeStrength = [](const wxPoint& a, const wxPoint& b, float strength) {
       const auto dx = b.x - a.x;
       const auto dy = b.y - a.y;
@@ -325,9 +325,9 @@ namespace gui {
     const auto startStrength = easeStrength(start, end, 100.f);
     const auto endStrength = easeStrength(start, end, 100.f);
     int8_t dir;
-    if (direction == Link::Direction::input)
+    if (direction == direction_t::input)
       dir = -1;
-    if (direction == Link::Direction::output)
+    if (direction == direction_t::output)
       dir = 1;
 
     const wxPoint controlA = wxPoint(start.x + (dir * startStrength), start.y);

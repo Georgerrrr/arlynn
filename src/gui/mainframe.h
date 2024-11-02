@@ -42,7 +42,7 @@ namespace gui {
         [this](wxMouseEvent& evt)
         { m_nodeCanvas->addNode((m_nodePath / "amplifier.xml"), std::make_shared<core::nodes::Amplifier>()); }},
       NodeButton{
-        "Audio To Amplitude",
+        "Audio To\nAmplitude",
         [this](wxMouseEvent& evt)
         { m_nodeCanvas->addNode((m_nodePath / "audio-amplitude.xml"), std::make_shared<core::nodes::AudioToAmplitude>()); }}
     };

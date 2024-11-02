@@ -10,8 +10,59 @@
 
 namespace gui {
 
-  template<class... Ts>
-  struct overloaded : Ts... { using Ts::operator()...; };
+  struct StringToAttribute {
+    const wxString& string;
+    void operator()(int* value) {
+      string.ToInt(value);
+    }
+    void operator()(float* value) {
+      *value = wxAtof(string);
+    }
+    void operator()(double* value) {
+      string.ToDouble(value);
+    }
+  };
+
+  template<class T>
+  struct ArithmeticToAttribute {
+    static_assert(std::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type!");
+    const T input;
+    void operator()(int* value) {
+      *value = input;
+    }
+    void operator()(float* value) {
+      *value = input;
+    }
+    void operator()(double* value) {
+      *value = input;
+    }
+  };
+
+  struct AttributeToString {
+    wxString operator()(int* value) {
+      return wxString::Format(wxT("%i"), *value);
+    }
+    wxString operator()(float* value) {
+      return wxString::Format(wxT("%f"), *value);
+    }
+    wxString operator()(double* value) {
+      return wxString::Format(wxT("%f"), *value);
+    }
+  };
+
+  template<class T>
+  struct AttributeToArithmetic {
+    static_assert(std::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type!");
+    T operator()(int* value) {
+      return *value;
+    }
+    T operator()(float* value) {
+      return *value;
+    }
+    T operator()(double* value) {
+      return *value;
+    }
+  };
 
   CanvasControl::CanvasControl(CanvasNode* parent, const wxRect& rect, size_t attributeIndex) 
     : m_parent(parent)
@@ -22,9 +73,9 @@ namespace gui {
 
   const wxFont TextBox::m_font(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
 
-  TextBox::TextBox(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, const wxString& value)
+  TextBox::TextBox(CanvasNode* parent, const wxRect& rect, size_t attributeIndex)
     : CanvasControl(parent, rect, attributeIndex)
-    , m_value(value)
+    , m_value(std::visit(AttributeToString{}, parent->getAttribute(attributeIndex)))
   {}
 
   void TextBox::onKeyPress(const char key) {
@@ -56,23 +107,14 @@ namespace gui {
     m_focus = false;
     core::attribute_t attribute = m_parent->getAttribute(m_attributeIndex);
     
-    std::visit(overloaded{
-        [this](int* value) {
-          m_value.ToInt(value);
-        },
-        [this](float* value) {
-          *value = wxAtof(m_value);
-        },
-        [this](double* value) {
-          m_value.ToDouble(value);
-        }}, attribute);
+    std::visit(StringToAttribute{m_value}, attribute);
   }
 
-  Dial::Dial(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, const wxColour& fillColour, double minValue, double defaultValue, double maxValue, double microChange) 
+  Dial::Dial(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, const wxColour& fillColour, double minValue, double maxValue, double microChange) 
     : CanvasControl(parent, rect, attributeIndex)
     , m_fillColour(fillColour)
     , m_minValue(minValue)
-    , m_value(defaultValue)
+    , m_value(std::visit(AttributeToArithmetic<double>{}, parent->getAttribute(attributeIndex)))
     , m_maxValue(maxValue)
     , m_microChange(microChange)
   {
@@ -134,25 +176,16 @@ namespace gui {
     std::scoped_lock<std::mutex> lock(core::Project::get().dataMutex);
 
     core::attribute_t attribute = m_parent->getAttribute(m_attributeIndex);
-    std::visit(overloaded{
-        [this](int* value) {
-          *value = m_value;
-        },
-        [this](float* value) {
-          *value = m_value;
-        },
-        [this](double* value) {
-          *value = m_value;
-        }}, attribute);
+    std::visit(ArithmeticToAttribute{m_value}, attribute);
   }
 
-  OptionBox::OptionBox(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, int maxOptionsPerRow, int defaultvalue, const std::vector<Option>& options)
+  OptionBox::OptionBox(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, int maxOptionsPerRow, const std::vector<Option>& options)
     : CanvasControl(parent, rect, attributeIndex)
     , m_options(options)
     , m_totalOptions(options.size())
     , m_maxOptionsPerRow(maxOptionsPerRow)
     , m_rows((m_totalOptions - 1) / m_maxOptionsPerRow + 1)
-    , m_currentValue(defaultvalue)
+    , m_currentValue(std::visit(AttributeToArithmetic<int>{}, parent->getAttribute(attributeIndex)))
   {
 
     size_t i = 0;
@@ -223,16 +256,7 @@ namespace gui {
     std::scoped_lock<std::mutex> lock(core::Project::get().dataMutex);
 
     core::attribute_t attribute = m_parent->getAttribute(m_attributeIndex);
-    std::visit(overloaded{
-        [this](int* value) {
-          *value = m_currentValue;
-        },
-        [this](float* value) {
-          *value = m_currentValue;
-        },
-        [this](double* value) {
-          *value = m_currentValue;
-        }}, attribute);
+    std::visit(ArithmeticToAttribute{m_currentValue}, attribute);
   }
 
 } // namespace gui

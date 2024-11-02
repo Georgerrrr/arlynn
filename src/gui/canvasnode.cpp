@@ -169,7 +169,7 @@ namespace gui {
       rect.height = position.child("size").attribute("height").as_int();
       getControlPosition(position, rect);
 
-      auto newControl = std::make_unique<TextBox>(this, rect, m_controls.size(), attributeNode.child("default").attribute("value").value());
+      auto newControl = std::make_unique<TextBox>(this, rect, m_controls.size());
       m_controls.push_back(std::move(newControl));
     } 
     else if (!control.compare("dial")) {
@@ -179,7 +179,6 @@ namespace gui {
       auto newControl = std::make_unique<Dial>(this, rect, m_controls.size(),
           wxColour(attributeNode.child("colour").attribute("value").value()),
           attributeNode.child("minimum").attribute("value").as_double(),
-          attributeNode.child("default").attribute("value").as_double(),
           attributeNode.child("maximum").attribute("value").as_double(),
           attributeNode.child("micro").attribute("value").as_double());
       m_controls.push_back(std::move(newControl));
@@ -197,7 +196,6 @@ namespace gui {
 
       auto newControl = std::make_unique<OptionBox>(this, rect, m_controls.size(),
           attributeNode.child("options_per_row").attribute("value").as_int(),
-          attributeNode.child("default").attribute("value").as_int(),
           options);
       m_controls.push_back(std::move(newControl));
     }

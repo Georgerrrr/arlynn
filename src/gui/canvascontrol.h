@@ -53,7 +53,7 @@ namespace gui {
 
   class TextBox : public CanvasControl {
     public:
-    TextBox(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, const wxString& value);
+    TextBox(CanvasNode* parent, const wxRect& rect, size_t attributeIndex);
     constexpr bool loseFocusOnMouseUp() const override { return false; }
     void onKeyPress(const char key) override;
 
@@ -67,7 +67,7 @@ namespace gui {
 
   class Dial : public CanvasControl {
     public:
-    Dial(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, const wxColour& fillColour, double minValue, double defaultValue, double maxValue, double microChange);
+    Dial(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, const wxColour& fillColour, double minValue, double maxValue, double microChange);
     constexpr bool loseFocusOnMouseUp() const override { return true; }
 
     void onMouseDown(const wxPoint& pos) override;
@@ -103,7 +103,7 @@ namespace gui {
       wxBitmap image;
     };
 
-    OptionBox(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, int maxOptionsPerRow, int defaultvalue, const std::vector<Option>& options);
+    OptionBox(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, int maxOptionsPerRow, const std::vector<Option>& options);
 
     void onMouseDown(const wxPoint& pos) override;
 

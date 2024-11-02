@@ -38,10 +38,10 @@
       <anchor value="s"/>
     </position>
     <options>
-      <option image="sin-icon.bmp"/>
-      <option image="square-icon.bmp"/>
-      <option image="triangle-icon.bmp"/>
-      <option image="saw-icon.bmp"/>
+      <option image="sin-icon.png"/>
+      <option image="square-icon.png"/>
+      <option image="triangle-icon.png"/>
+      <option image="saw-icon.png"/>
     </options>
     <default value="0"/>
     <options_per_row value="4"/>

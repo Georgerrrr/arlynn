@@ -9,12 +9,7 @@ include("${CMAKE_SCRIPTS_DIR}/libraries.cmake")
 
 include(${wxWidgets_USE_FILE})
 
-if (WIN32)
-  set(RESOURCE_PATH ${CMAKE_SOURCE_DIR}/resources/windows)
-else()
-  set(RESOURCE_PATH ${CMAKE_SOURCE_DIR}/resources/linux)
-endif()
-
+set(RESOURCE_PATH ${CMAKE_SOURCE_DIR}/resources/images)
 set(NODE_PATH ${CMAKE_SOURCE_DIR}/resources/nodes)
 
 if (${CMAKE_BUILD_TYPE})

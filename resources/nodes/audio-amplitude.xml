@@ -15,8 +15,8 @@
       <anchor value="s"/>
     </position>
     <options>
-      <option image="cutoff-icon.bmp"/>
-      <option image="shift-icon.bmp"/>
+      <option image="cutoff-icon.png"/>
+      <option image="shift-icon.png"/>
     </options>
     <default value="0"/>
     <options_per_row value="2"/>

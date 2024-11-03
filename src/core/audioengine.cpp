@@ -4,6 +4,7 @@
 #include "audioengine.h"
 
 #include "audioclients/portaudioclient.h"
+#include "audioclients/dummyclient.h"
 
 namespace core {
 
@@ -15,7 +16,7 @@ namespace core {
   {
     m_sampleRate = sampleRate;
     m_bufferSize = bufferSize;
-    m_audioClient = std::move(std::make_unique<PortaudioClient>(m_deviceNumber, this));
+    m_audioClient = std::move(std::make_unique<DummyClient>(m_deviceNumber, this));
 
     Project::get().initialize();
   }

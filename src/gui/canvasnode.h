@@ -21,6 +21,46 @@ namespace gui {
     output
   };
 
+  struct StringToAttribute {
+    const wxString& string;
+    core::attribute_t operator()(int value) {
+      return wxAtoi(string);
+    }
+    core::attribute_t operator()(float value) {
+      return static_cast<float>(wxAtof(string));
+    }
+    core::attribute_t operator()(double value) {
+      string.ToDouble(&value);
+      return value;
+    }
+  };
+
+  struct AttributeToString {
+    wxString operator()(int value) {
+      return wxString::Format(wxT("%i"), value);
+    }
+    wxString operator()(float value) {
+      return wxString::Format(wxT("%f"), value);
+    }
+    wxString operator()(double value) {
+      return wxString::Format(wxT("%f"), value);
+    }
+  };
+
+  template<class T>
+  struct AttributeToArithmetic {
+    static_assert(std::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type!");
+    T operator()(int value) {
+      return value;
+    }
+    T operator()(float value) {
+      return value;
+    }
+    T operator()(double value) {
+      return value;
+    }
+  };
+
   struct Slot {
     Slot(CanvasNode* parent, direction_t direction, size_t index,
         const wxString& name, const wxColour& colour, const wxRect& rect);
@@ -42,9 +82,9 @@ namespace gui {
     void onUpdate(wxGraphicsContext* gc);
     void drawSlot(wxGraphicsContext* gc, const Slot& slot, size_t index);
 
-    std::vector<Slot>& getSlots() { return m_slots; }
-
-    std::vector<std::unique_ptr<CanvasControl>>& getControls() { return m_controls; }
+    void setAttribute(size_t index, const core::attribute_t& value) {
+      m_node->setAttribute(index, value);
+    }
 
     void setSelected(bool selected) {
       m_selected = selected;
@@ -55,10 +95,13 @@ namespace gui {
       m_rect.y += vect.y;
     }
 
+    std::vector<Slot>& getSlots() { return m_slots; }
+    std::vector<std::unique_ptr<CanvasControl>>& getControls() { return m_controls; }
+
     const wxString& getName() const { return m_name; }
     const wxRect& getRect() const { return m_rect; }
 
-    core::attribute_t getAttribute(size_t index) { return m_node->getAttribute(index); }
+    const core::attribute_t getAttribute(size_t index) const { return m_node->getAttribute(index); }
 
     bool topBar(const wxPoint& pos) {
       return wxRect(m_rect.x, m_rect.y, m_rect.width, m_titleBarLine).Contains(pos);

@@ -15,10 +15,6 @@ namespace nodes {
       registerInput(NodeInput(signal_t::audio));
       registerInput(NodeInput(signal_t::audio));
     }
-
-    constexpr std::string name() override { return "Output"; }
-    constexpr std::string author() override { return "George Ridout"; }
-    constexpr std::string version() override { return "1.0.0"; }
   };
 
 } // namespace nodes

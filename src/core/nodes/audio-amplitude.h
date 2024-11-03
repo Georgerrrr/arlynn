@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "core/node.h"
+#include "../node.h"
 
 namespace core {
 
@@ -14,13 +14,10 @@ namespace nodes {
 
     static void render(std::vector<float>& output, uint32_t bufferSize, void* userData);
 
-    constexpr std::string name() override { return "Audio To Amplitude"; }
-    constexpr std::string author() override { return "George Ridout"; }
-    constexpr std::string version() override { return "1.0.0"; }
-
     private:
-    int m_convertionType;
-    double m_minValue;
+    const size_t CONVERTION_TYPE;
+    const size_t MIN_VALUE;
+    const size_t AUDIO_INPUT;
   };
 
 } // namespace nodes 

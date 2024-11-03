@@ -8,45 +8,41 @@ namespace core {
 
 namespace nodes {
 
-  constexpr auto AUDIO_INPUT = 0;
-
   AudioToAmplitude::AudioToAmplitude()
     : Node() 
-    , m_convertionType(0)
-    , m_minValue(0.5)
+    , CONVERTION_TYPE(registerAttribute<int>(0))
+    , MIN_VALUE(registerAttribute<float>(0.5f))
+    , AUDIO_INPUT(registerInput(NodeInput(signal_t::audio)))
   {
-    registerAttribute(&m_convertionType);
-    registerAttribute(&m_minValue);
     registerOutput(AmplificationSignal(AudioToAmplitude::render, this));
-    registerInput(NodeInput(signal_t::audio));
   }
 
   void AudioToAmplitude::render(std::vector<float>& output, uint32_t bufferSize, void *userData) {
     AudioToAmplitude* ata = reinterpret_cast<AudioToAmplitude*>(userData);
+    const int& convertionType = std::get<int>(ata->getAttribute(ata->CONVERTION_TYPE));
+    const float& minValue = std::get<float>(ata->getAttribute(ata->MIN_VALUE));
 
     std::fill(output.begin(), output.end(), 0.f);
 
-    const NodeInput& audioInput = ata->getInput(AUDIO_INPUT);
+    const NodeInput& audioInput = ata->getInput(ata->AUDIO_INPUT);
     if (audioInput.node == nullptr) return;
 
     const AudioSignal& signal = std::get<AudioSignal>(audioInput.node->getOutput(audioInput.index));
 
-    if (ata->m_convertionType == 0) {
+    if (convertionType == 0) {
       std::transform(
           output.cbegin(), output.cend(), signal.data.cbegin(), output.begin(),
-          [ata](float, float value)
+          [minValue](float, float value)
           {
-            float v = static_cast<float>(ata->m_minValue);
-            return value > v ? value : v;
+            return value > minValue ? value : minValue;
           });
       return;
     } 
     std::transform(
         output.cbegin(), output.cend(), signal.data.cbegin(), output.begin(),
-        [ata](float, float value)
+        [minValue](float, float value)
         {
-          float v = static_cast<float>(ata->m_minValue);
-          return ((1.f - v) * (value + 1.f) / 2.f) + v;
+          return ((1.f - minValue) * (value + 1.f) / 2.f) + minValue;
         });
   }
 } // namespace nodes

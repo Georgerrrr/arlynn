@@ -16,34 +16,30 @@ namespace nodes {
   constexpr auto OSC_SQUARE = 1;
   constexpr auto OSC_TRIANGLE = 2;
   constexpr auto OSC_SAW = 3;
-  constexpr auto MODULATOR_INPUT = 0;
-  constexpr auto FREQUENCY_INPUT = 1;
 
   Oscillator::Oscillator()
    : Node()
    , m_sampleRate(AudioEngine::getSampleRate())
    , m_bufferSize(AudioEngine::getBufferSize())
-   , m_modulation(0.5f)
-   , m_frequency(440.f)
-   , m_waveType(0)
+   , MODULATION(registerAttribute<float>(0.5f))
+   , FREQUENCY(registerAttribute<float>(440.f))
+   , WAVE_TYPE(registerAttribute<int>(0))
+   , MODULATION_INPUT(registerInput(NodeInput(signal_t::audio)))
+   , FREQUENCY_INPUT(registerInput(NodeInput(signal_t::frequency)))
   {
-    registerAttribute(&m_modulation);
-    registerAttribute(&m_frequency);
-    registerAttribute(&m_waveType);
     registerOutput(AudioSignal(Oscillator::render, this));
-    registerInput(NodeInput(signal_t::audio));
-    registerInput(NodeInput(signal_t::frequency));
   }
 
   void Oscillator::render(std::vector<float>& output, uint32_t bufferSize, void* userData) {
-
     Oscillator* osc = reinterpret_cast<Oscillator*>(userData);
+
+    const float& modulation = std::get<float>(osc->getAttribute(osc->MODULATION));
 
     std::fill(output.begin(), output.end(), 0.f);
 
-    const NodeInput& fi = osc->getInput(FREQUENCY_INPUT);
-    const NodeInput& mi = osc->getInput(MODULATOR_INPUT);
-    float freq = osc->m_frequency;
+    const NodeInput& fi = osc->getInput(osc->FREQUENCY_INPUT);
+    const NodeInput& mi = osc->getInput(osc->MODULATION_INPUT);
+    float freq = std::get<float>(osc->getAttribute(osc->FREQUENCY));
     float offset = 0;
 
     for (size_t i = 0 ; i < bufferSize ; i++) {
@@ -52,29 +48,32 @@ namespace nodes {
       }
       if (mi.node != nullptr) {
         offset = std::get<AudioSignal>(mi.node->getOutput(mi.index)).data.at(i) *
-                 osc->m_modulation *
+                 modulation *
                  freq;
       }
-      output[i] = osc->generateFrame(freq, offset);
+      output[i] = osc->generateFrame(freq, offset, std::get<int>(osc->getAttribute(osc->WAVE_TYPE)));
     }
   }
 
-  float Oscillator::generateFrame(float frequency, float offset) {
+  float Oscillator::generateFrame(float frequency, float offset, int waveType) {
     const float N = M_PI * 2.f / m_sampleRate;
-    const float phaseDelta = m_frequency + offset;
+    const float phaseDelta = frequency + offset;
     const float sinValue = sin(N * m_phaseIndex);
     m_phaseIndex += phaseDelta;
 
-    switch (m_waveType)
+    switch (waveType)
     {
       case OSC_SIN:
         return sinValue;
       case OSC_SQUARE:
         return sinValue > 0.f ? 1.f : -1.f;
       case OSC_TRIANGLE:
-        return (float)(asin(sinValue) * 2.0 / M_PI);
+        return static_cast<float>(asin(sinValue) * 2.0 / M_PI);
       case OSC_SAW:
-        return -1.f + (2.f * (float)((int)m_phaseIndex % (int)m_sampleRate) / m_sampleRate);
+        return -1.f + (2.f * 
+            static_cast<float>(
+              static_cast<int>(m_phaseIndex) % static_cast<int>(m_sampleRate))
+            / m_sampleRate);
       default:
         return 0.f;
     }

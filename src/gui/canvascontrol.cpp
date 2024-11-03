@@ -10,60 +10,6 @@
 
 namespace gui {
 
-  struct StringToAttribute {
-    const wxString& string;
-    void operator()(int* value) {
-      string.ToInt(value);
-    }
-    void operator()(float* value) {
-      *value = wxAtof(string);
-    }
-    void operator()(double* value) {
-      string.ToDouble(value);
-    }
-  };
-
-  template<class T>
-  struct ArithmeticToAttribute {
-    static_assert(std::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type!");
-    const T input;
-    void operator()(int* value) {
-      *value = input;
-    }
-    void operator()(float* value) {
-      *value = input;
-    }
-    void operator()(double* value) {
-      *value = input;
-    }
-  };
-
-  struct AttributeToString {
-    wxString operator()(int* value) {
-      return wxString::Format(wxT("%i"), *value);
-    }
-    wxString operator()(float* value) {
-      return wxString::Format(wxT("%f"), *value);
-    }
-    wxString operator()(double* value) {
-      return wxString::Format(wxT("%f"), *value);
-    }
-  };
-
-  template<class T>
-  struct AttributeToArithmetic {
-    static_assert(std::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type!");
-    T operator()(int* value) {
-      return *value;
-    }
-    T operator()(float* value) {
-      return *value;
-    }
-    T operator()(double* value) {
-      return *value;
-    }
-  };
-
   CanvasControl::CanvasControl(CanvasNode* parent, const wxRect& rect, size_t attributeIndex) 
     : m_parent(parent)
     , m_rect(rect)
@@ -102,12 +48,10 @@ namespace gui {
   }
 
   void TextBox::setLoseFocus() {
-    std::scoped_lock<std::mutex> lock(core::Project::get().dataMutex);
-
     m_focus = false;
     core::attribute_t attribute = m_parent->getAttribute(m_attributeIndex);
     
-    std::visit(StringToAttribute{m_value}, attribute);
+    m_parent->setAttribute(m_attributeIndex, std::visit(StringToAttribute{m_value}, attribute));
   }
 
   Dial::Dial(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, const wxColour& fillColour, double minValue, double maxValue, double microChange) 
@@ -173,10 +117,8 @@ namespace gui {
   }
 
   void Dial::onChange() {
-    std::scoped_lock<std::mutex> lock(core::Project::get().dataMutex);
-
-    core::attribute_t attribute = m_parent->getAttribute(m_attributeIndex);
-    std::visit(ArithmeticToAttribute{m_value}, attribute);
+    float value = m_value;
+    m_parent->setAttribute(m_attributeIndex, value);
   }
 
   OptionBox::OptionBox(CanvasNode* parent, const wxRect& rect, size_t attributeIndex, int maxOptionsPerRow, const std::vector<Option>& options)
@@ -253,10 +195,7 @@ namespace gui {
   }
 
   void OptionBox::onChange() {
-    std::scoped_lock<std::mutex> lock(core::Project::get().dataMutex);
-
-    core::attribute_t attribute = m_parent->getAttribute(m_attributeIndex);
-    std::visit(ArithmeticToAttribute{m_currentValue}, attribute);
+    m_parent->setAttribute(m_attributeIndex, m_currentValue);
   }
 
 } // namespace gui

@@ -11,13 +11,11 @@ namespace nodes {
 
   Amplifier::Amplifier()
     : Node() 
+    , GAIN(registerAttribute<float>(0.5f))
+    , GAIN_INPUT(registerInput(NodeInput(signal_t::amplification)))
+    , AUDIO_INPUT(registerInput(NodeInput(signal_t::audio)))
   {
-    m_ampControl = 0.5;
-
-    registerInput(NodeInput(signal_t::amplification));
-    registerInput(NodeInput(signal_t::audio));
     registerOutput(AudioSignal(Amplifier::render, this));
-    registerAttribute(&m_ampControl);
   }
 
   void Amplifier::render(std::vector<float>& output, uint32_t bufferSize, void* userData) {
@@ -25,8 +23,8 @@ namespace nodes {
 
     Amplifier* amp = reinterpret_cast<Amplifier*>(userData);
 
-    auto gainInput = amp->getInput(GAIN_INPUT);
-    auto audioInput = amp->getInput(AUDIO_INPUT);
+    auto gainInput = amp->getInput(amp->GAIN_INPUT);
+    auto audioInput = amp->getInput(amp->AUDIO_INPUT);
 
     if (audioInput.node == nullptr) return;
 
@@ -36,7 +34,7 @@ namespace nodes {
       output.cbegin(), output.cend(), audioSource.data.cbegin(), output.begin(),
       [amp](float a, float b)
       {
-        return (a + b) * static_cast<float>(amp->m_ampControl);
+        return (a + b) * std::get<float>(amp->getAttribute(amp->GAIN));
       });
 
     if (gainInput.node == nullptr) return;

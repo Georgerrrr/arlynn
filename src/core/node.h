@@ -8,7 +8,7 @@
 
 namespace core {
 
-  typedef std::variant<int*, float*, double*> attribute_t;
+  typedef std::variant<int, float, double> attribute_t;
 
   /**
    * Node is the base class for any node such as Oscillator or Amplifier 
@@ -36,6 +36,9 @@ namespace core {
      *  - 2 if node finds itself in it's own input chain.
      */
     uint8_t setInput(size_t inputIndex, std::shared_ptr<Node> node=nullptr, size_t outputIndex=0);
+    bool isNodeInInputChain(Node* node);
+
+    void setAttribute(size_t attributeIndex, attribute_t attribute);
 
     const bool getHasRendered() const { return m_hasRendered; } /**< @return m_hasRendered */
     /**
@@ -52,7 +55,7 @@ namespace core {
      * @param the index of Node's attribute that is being returned
      * @return node attribute
      */
-    attribute_t getAttribute(size_t index) { return m_attributes.at(index); }
+    const attribute_t& getAttribute(size_t index) const { return m_attributes.at(index); }
     
     /**
      * Renders this nodes audio buffer 
@@ -64,14 +67,15 @@ namespace core {
      */
     void renderBuffer();
 
-    virtual constexpr std::string name() = 0; /**< The name of the node */
-    virtual constexpr std::string author() = 0; /**< The author of the node */
-    virtual constexpr std::string version() = 0; /**< The version of the node */
-
     protected:
-    void registerInput(NodeInput&& input); /**< Register a new input (Only accepts R-values) */
-    void registerOutput(NodeOutput&& output); /**< Register a new output (Only accepts R-values) */
-    void registerAttribute(attribute_t attribute); /**< Register a new attribute */
+    const size_t registerInput(NodeInput&& input); /**< Register a new input (Only accepts R-values) */
+    const size_t registerOutput(NodeOutput&& output); /**< Register a new output (Only accepts R-values) */
+    template<class T>
+    const size_t registerAttribute(const T& attribute) { /**< Register a new attribute */
+      static_assert(std::is_arithmetic<T>::value, "Attribute must be of numeric type!");
+      m_attributes.push_back(attribute);
+      return m_attributes.size()-1;
+    }
 
     private:
     std::vector<NodeOutput> m_outputs;

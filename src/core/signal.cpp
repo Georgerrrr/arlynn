@@ -5,22 +5,25 @@
 namespace core {
 
   AudioSignal::AudioSignal(render_t render, void* userData)
-    : data(AudioEngine::getBufferSize())
+    : data(AudioEngine::getBufferSize(), 0)
     , render(render)
     , userData(userData)
-  {}
+  {
+  }
 
   AmplificationSignal::AmplificationSignal(render_t renderFunction, void* userData)
-    : data(AudioEngine::getBufferSize())
+    : data(AudioEngine::getBufferSize(), 0)
     , render(renderFunction)
     , userData(userData)
-  {}
+  {
+  }
 
   FrequencySignal::FrequencySignal(render_t renderFunction, void* userData)
-    : data(AudioEngine::getBufferSize())
+    : data(AudioEngine::getBufferSize(), 0)
     , render(renderFunction)
     , userData(userData)
-  {}
+  {
+  }
 
   template<class... Ts>
   struct overloaded : Ts... { using Ts::operator()...; };

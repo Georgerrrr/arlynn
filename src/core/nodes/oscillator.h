@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "core/node.h"
+#include "../node.h"
 
 namespace core {
   
@@ -13,22 +13,20 @@ namespace nodes {
     public:
     Oscillator();
 
-    float generateFrame(float frequency, float offset);
+    float generateFrame(float frequency, float offset, int waveType);
 
     static void render(std::vector<float>& output, uint32_t bufferSize, void* userData);
-
-    constexpr std::string name() override { return "Oscillator"; }
-    constexpr std::string author() override { return "George Ridout"; }
-    constexpr std::string version() override { return "1.0.0"; }
 
     private:
     double m_phaseIndex;
     uint32_t m_sampleRate;
     uint32_t m_bufferSize;
 
-    float m_modulation;
-    float m_frequency;
-    int m_waveType;
+    const size_t MODULATION;
+    const size_t FREQUENCY;
+    const size_t WAVE_TYPE;
+    const size_t MODULATION_INPUT;
+    const size_t FREQUENCY_INPUT;
   };
 
 } // namespace nodes

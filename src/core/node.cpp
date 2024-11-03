@@ -16,11 +16,27 @@ namespace core {
 
     if (node != nullptr) {
       if (m_inputs.at(inputIndex).inputType != getOutputFormat(node->getOutput(outputIndex))) return 1;
+      if (node->isNodeInInputChain(this)) return 2;
     }
+
 
     m_inputs.at(inputIndex).node = node;
     m_inputs.at(inputIndex).index = outputIndex;
     return 0;
+  }
+
+  bool Node::isNodeInInputChain(Node* node) {
+    for (auto& input : m_inputs) {
+      if (input.node == nullptr) continue;
+      if (input.node.get() == node) return true;
+      if (input.node->isNodeInInputChain(node)) return true;
+    }
+    return false;
+  }
+
+  void Node::setAttribute(size_t attributeIndex, attribute_t attribute) {
+    std::scoped_lock<std::mutex> lock(Project::get().dataMutex);
+    m_attributes.at(attributeIndex) = attribute;
   }
 
   template<class... Ts>
@@ -43,16 +59,14 @@ namespace core {
     m_hasRendered = true;
   }
 
-  void Node::registerInput(NodeInput&& input) {
+  const size_t Node::registerInput(NodeInput&& input) {
     m_inputs.push_back(input);
+    return m_inputs.size()-1;
   }
 
-  void Node::registerOutput(NodeOutput&& output) {
+  const size_t Node::registerOutput(NodeOutput&& output) {
     m_outputs.push_back(output);
-  }
-
-  void Node::registerAttribute(attribute_t attribute) {
-    m_attributes.push_back(attribute);
+    return m_outputs.size()-1;
   }
 
 } // namespace core

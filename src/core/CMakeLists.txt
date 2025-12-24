@@ -5,11 +5,8 @@ project(core)
 list(APPEND CORE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/audioengine.cpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/project.cpp 
-  ${CMAKE_CURRENT_SOURCE_DIR}/node.cpp 
-  ${CMAKE_CURRENT_SOURCE_DIR}/signal.cpp 
 )
 
-add_subdirectory(nodes)
 add_subdirectory(audioclients)
 
 add_library(core STATIC ${CORE_SOURCES})

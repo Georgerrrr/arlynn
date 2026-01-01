@@ -11,6 +11,8 @@ namespace core {
     AudioClient(uint32_t& deviceNumber, AudioEngine* audioEngine) : m_audioEngine(audioEngine) {}
     virtual ~AudioClient() {}
 
+    virtual void close() {}
+
     protected:
     virtual void callback(float* outputBuffer, uint64_t framesPerBuffer) = 0;
 

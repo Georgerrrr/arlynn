@@ -16,6 +16,8 @@ class DummyClient : public AudioClient
 
   ~DummyClient() override;
 
+  void close() override;
+
   private:
   bool m_running;
 

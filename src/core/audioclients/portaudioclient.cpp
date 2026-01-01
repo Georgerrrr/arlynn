@@ -60,10 +60,13 @@ namespace core {
   }
 
   PortaudioClient::~PortaudioClient() {
+    Pa_Terminate();
+  }
+
+  void PortaudioClient::close() {
     PaError err = Pa_StopStream(m_stream);
     if (err != paNoError)
       portaudioError(err);
-    Pa_Terminate();
   }
 
   void PortaudioClient::callback(float* outputBuffer, uint64_t framesPerBuffer) {

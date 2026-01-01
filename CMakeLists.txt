@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.30)
-project(arlynn)
+
+project(arlynn LANGUAGES CXX)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CXX_STANDARD 20)
+set(CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
 set(CMAKE_SCRIPTS_DIR "${CMAKE_SOURCE_DIR}/cmake/scripts")
@@ -21,16 +26,12 @@ endif()
 configure_file(${CMAKE_SOURCE_DIR}/src/configure.h.in ${CMAKE_SOURCE_DIR}/src/configure.h)
 
 add_subdirectory(src)
+add_subdirectory(test)
 
 add_executable(arlynn WIN32 ${SOURCES})
 
 target_link_libraries(arlynn PRIVATE core ${wxWidgets_LIBRARIES} ${FFTW3_fftw3_LIBRARY} ${pugixml_LIBRARIES})
 target_include_directories(arlynn PUBLIC ${wxWidgets_INCLUDE_DIRS} ${SOURCE_HEADERS} ${pugixml_INCLUDE_DIR})
-
-set_property(TARGET arlynn PROPERTY CXX_STANDARD 20)
-set_property(TARGET arlynn PROPERTY CXX_STANDARD_REQUIRED on)
-
-set_property(TARGET arlynn PROPERTY CMAKE_EXPORT_COMPILE_COMMANDS on)
 
 file(CREATE_LINK
   "${CMAKE_BINARY_DIR}/compile_commands.json"

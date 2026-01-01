@@ -30,10 +30,13 @@ DummyClient::DummyClient(
 
 DummyClient::~DummyClient() 
 {
+  delete[] m_buffer;
+}
+
+void DummyClient::close() {
   std::cout << "Dummy Client Closed\n";
   m_running = false;
   m_audioThread.join();
-  delete[] m_buffer;
 }
 
 

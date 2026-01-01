@@ -13,6 +13,8 @@ namespace core {
     PortaudioClient(uint32_t& deviceNumber, AudioEngine* audioEngine);
     ~PortaudioClient() override;
 
+    void close() override;
+
     private:
     static int paCallback(
         const void* inputBuffer, void* outputBuffer,

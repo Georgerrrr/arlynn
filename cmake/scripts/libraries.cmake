@@ -1,6 +1,9 @@
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(GTKMM REQUIRED gtkmm-4.0)
+
 find_package("Portaudio" REQUIRED)
 find_package("RTMIDI" REQUIRED)
-find_package("wxWidgets" REQUIRED core base OPTIONAL_COMPONENTS)
 find_package("FFTW3" REQUIRED)
 
 include(FetchContent)

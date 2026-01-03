@@ -30,8 +30,8 @@ add_subdirectory(test)
 
 add_executable(arlynn WIN32 ${SOURCES})
 
-target_link_libraries(arlynn PRIVATE core ${wxWidgets_LIBRARIES} ${FFTW3_fftw3_LIBRARY} ${pugixml_LIBRARIES})
-target_include_directories(arlynn PUBLIC ${wxWidgets_INCLUDE_DIRS} ${SOURCE_HEADERS} ${pugixml_INCLUDE_DIR})
+target_link_libraries(arlynn PRIVATE core ${GTKMM_LIBRARIES} ${FFTW3_fftw3_LIBRARY} ${pugixml_LIBRARIES})
+target_include_directories(arlynn PUBLIC  ${SOURCE_HEADERS} ${GTKMM_INCLUDE_DIRS} ${pugixml_INCLUDE_DIR})
 
 file(CREATE_LINK
   "${CMAKE_BINARY_DIR}/compile_commands.json"

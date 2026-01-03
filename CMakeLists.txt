@@ -12,10 +12,8 @@ set(CMAKE_SCRIPTS_DIR "${CMAKE_SOURCE_DIR}/cmake/scripts")
 include("${CMAKE_SCRIPTS_DIR}/debug-variables.cmake")
 include("${CMAKE_SCRIPTS_DIR}/libraries.cmake")
 
-include(${wxWidgets_USE_FILE})
-
-set(RESOURCE_PATH ${CMAKE_SOURCE_DIR}/resources/images)
-set(NODE_PATH ${CMAKE_SOURCE_DIR}/resources/nodes)
+set(RESOURCE_PATH ${CMAKE_SOURCE_DIR}/res/)
+set(NODE_PATH ${CMAKE_SOURCE_DIR}/res/)
 
 if (${CMAKE_BUILD_TYPE})
   if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")

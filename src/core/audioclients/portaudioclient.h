@@ -10,7 +10,7 @@ namespace core {
 
   class PortaudioClient : public AudioClient {
     public:
-    PortaudioClient(uint32_t& deviceNumber, AudioEngine* audioEngine);
+    PortaudioClient(int32_t& device, render_t renderfunc);
     ~PortaudioClient() override;
 
     void close() override;
@@ -20,8 +20,6 @@ namespace core {
         const void* inputBuffer, void* outputBuffer,
         unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* timeInfo,
         PaStreamCallbackFlags statusFlags, void* userData);
-
-    void callback(float* outputBuffer, uint64_t framesPerBuffer) override;
 
     PaStream* m_stream = nullptr;
 

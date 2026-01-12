@@ -7,12 +7,10 @@
 namespace core
 {
 
-class AudioEngine;
-
 class DummyClient : public AudioClient
 {
   public:
-  DummyClient(uint32_t& deviceNumber, AudioEngine* audioEngine);
+  DummyClient(int32_t& device, render_t renderfunc);
 
   ~DummyClient() override;
 
@@ -28,7 +26,6 @@ class DummyClient : public AudioClient
   std::thread m_audioThread;
 
   static void dummyCallback(DummyClient* client);
-  void callback(float* outputbuffer, unsigned long framesPerBuffer) override;
 };
 
 } // namespace core

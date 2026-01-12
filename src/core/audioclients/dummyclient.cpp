@@ -9,15 +9,14 @@ const static int channels = 2;
 namespace core
 {
 
-DummyClient::DummyClient(
-    uint32_t& deviceNumber, AudioEngine* audioEngine)
-    : AudioClient(deviceNumber, audioEngine)
-    , m_running(false)
+DummyClient::DummyClient(int32_t& device, render_t renderfunc)
+  : AudioClient(device, renderfunc)
+  , m_running(false)
 {
-  deviceNumber = 0;
+  device = 0;
 
-  m_sampleRate = audioEngine->getSampleRate();
-  m_bufferSize = audioEngine->getBufferSize();
+  m_sampleRate = audio::SampleRate(); 
+  m_bufferSize = audio::BufferSize();
 
   std::cout << "Dummy Client Opened With\n";
   std::cout << "Sample Rate: " << m_sampleRate << "\n";
@@ -46,7 +45,7 @@ void DummyClient::dummyCallback(DummyClient* client)
   {
     const auto startTime = std::chrono::high_resolution_clock::now();
 
-    client->callback(client->m_buffer, client->m_bufferSize);
+    client->mRenderFunc(client->m_buffer, client->m_bufferSize);
 
     const auto endTime = std::chrono::high_resolution_clock::now();
 
@@ -54,11 +53,6 @@ void DummyClient::dummyCallback(DummyClient* client)
     if (time.count() > 0)
       std::this_thread::sleep_for(time);
   }
-}
-
-void DummyClient::callback(float* outputbuffer, unsigned long framesPerBuffer)
-{
-  m_audioEngine->renderBuffer(outputbuffer, framesPerBuffer);
 }
 
 } // namespace core

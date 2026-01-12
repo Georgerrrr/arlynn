@@ -3,9 +3,9 @@
 
 namespace core {
 
-  PortaudioClient::PortaudioClient(
-      uint32_t& deviceNumber, AudioEngine* audioEngine)
-    : AudioClient(deviceNumber, audioEngine)
+
+  PortaudioClient::PortaudioClient(int32_t& device, render_t renderfunc)
+    : AudioClient(device, renderfunc)
   {
     PaError err = Pa_Initialize();
     if (err != paNoError)
@@ -15,14 +15,10 @@ namespace core {
     }
 
     auto hostApiInfo = (PaHostApiInfo*)Pa_GetHostApiInfo(Pa_GetDefaultHostApi());
-    for (int i = 0; i < Pa_GetHostApiCount(); i++)
-    {
-      if (Pa_GetHostApiInfo(i)->type == paJACK)
-        hostApiInfo = (PaHostApiInfo*)Pa_GetHostApiInfo(i);
-    }
 
-    int device = hostApiInfo->defaultOutputDevice;
-    deviceNumber = device;
+    if (-1 == device) {
+      device = hostApiInfo->defaultOutputDevice;
+    }
     if (device == paNoDevice)
     {
       fprintf(stderr, "No Device Found!\n");
@@ -40,8 +36,8 @@ namespace core {
     outputParameters.hostApiSpecificStreamInfo = NULL;
 
     err = Pa_OpenStream(
-        &m_stream, NULL, &outputParameters, audioEngine->getSampleRate(),
-        audioEngine->getBufferSize(), paNoFlag,
+        &m_stream, NULL, &outputParameters, audio::SampleRate(),
+        audio::BufferSize(), paNoFlag,
         paCallback, // User Callback Function
         this);
 
@@ -69,16 +65,12 @@ namespace core {
       portaudioError(err);
   }
 
-  void PortaudioClient::callback(float* outputBuffer, uint64_t framesPerBuffer) {
-    m_audioEngine->renderBuffer(outputBuffer, framesPerBuffer);
-  }
-
   int PortaudioClient::paCallback(
         const void* inputBuffer, void* outputBuffer,
         unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* timeInfo,
         PaStreamCallbackFlags statusFlags, void* userData) {
     auto ac = static_cast<PortaudioClient*>(userData);
-    ac->callback(reinterpret_cast<float*>(outputBuffer), framesPerBuffer);
+    ac->mRenderFunc(reinterpret_cast<float*>(outputBuffer), framesPerBuffer);
     return paContinue;
   }
 

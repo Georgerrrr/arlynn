@@ -25,13 +25,11 @@ namespace core {
   void Node::Process(){
     if (HasRendered) return;
 
-    static auto& ae = AudioEngine::get();
-
     for (auto& input : Inputs) {
       if (input.connection.nodeId == -1) continue;
-      ae.UpdateNodeIndex(input.connection.cachedNodeIndex);
-      auto& node = ae.mNodes[input.connection.cachedNodeIndex];
-      node->Process();
+      audio::UpdateNodeIndex(input.connection.cachedNodeIndex);
+      auto& node = audio::GetNode(input.connection.cachedNodeIndex); 
+      node.Process();
     }
 
     for (auto& output : Outputs) {

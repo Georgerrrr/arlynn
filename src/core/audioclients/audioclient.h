@@ -1,22 +1,23 @@
 #pragma once 
 
 #include <cstdint>
+#include <functional>
 
 namespace core {
 
-  class AudioEngine;
+  typedef void(*render_t)(float*, uint64_t) noexcept;
 
   class AudioClient {
     public:
-    AudioClient(uint32_t& deviceNumber, AudioEngine* audioEngine) : m_audioEngine(audioEngine) {}
+    /* pass in -1 to set device to default device */
+    AudioClient(int32_t& device, render_t renderfunc)
+      : mRenderFunc(renderfunc)
+    {}
     virtual ~AudioClient() {}
 
     virtual void close() {}
 
-    protected:
-    virtual void callback(float* outputBuffer, uint64_t framesPerBuffer) = 0;
-
-    AudioEngine* m_audioEngine;
+    render_t mRenderFunc;
   };
 
 } // namespace core 

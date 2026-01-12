@@ -3,6 +3,7 @@
 
 #include "audioengine.h"
 
+#include "audioclients/audioclient.h"
 #include "audioclients/portaudioclient.h"
 #include "audioclients/dummyclient.h"
 
@@ -11,125 +12,158 @@ void outputclose();
 
 namespace core {
 
-  uint32_t AudioEngine::m_deviceNumber= 0;
-  uint32_t AudioEngine::m_sampleRate = 0;
-  uint32_t AudioEngine::m_bufferSize = 0;
+  namespace audio {
 
-  void AudioEngine::initialize(uint32_t sampleRate, uint32_t bufferSize)
-  {
-    addNode(outputinit, outputclose);
+    static AudioClient* audioclient = nullptr;
 
-    m_sampleRate = sampleRate;
-    m_bufferSize = bufferSize;
-    m_audioClient = std::move(std::make_unique<PortaudioClient>(m_deviceNumber, this));
-  }
+    constexpr size_t MaxNodes = 1024;
 
-  void AudioEngine::close() {
-    m_audioClient->close();
-  }
+    static size_t nextid;
 
-  void AudioEngine::addNode(Node::node_init iFunc, Node::node_close cFunc) {
-    auto node = std::make_unique<Node>();
-    node->Init = iFunc;
-    node->Close = cFunc;
+    static int32_t devicenumber;
+    static uint32_t samplerate;
+    static uint32_t buffersize;
 
-    node->id = mNewId;
-    mNewId++;
+    static fifo_t<std::unique_ptr<Node>> addFifo{1};
+    static fifo_t<std::unique_ptr<Node>> removeFifo{1};
 
-    node->Init(*node, getSampleRate(), getBufferSize());
+    static fifo_t<message_t> messages{32};
 
-    while (!mNewNode.empty());
-    mNewNode.push(std::move(node));
-  }
+    static std::vector<std::unique_ptr<Node>> nodes;
 
-  std::unique_ptr<Node> AudioEngine::removeNode(int16_t id) {
-    sendMessage(_remove_node{id});
+    static void renderbuffer(float* buffer, uint64_t framesPerBuffer) noexcept;
 
-    /* wait for the audio thread to put the removed node 
-     * onto the remove node fifo */
-    while (mRemoveNode.empty());
+    void Init(int32_t dn, uint32_t sr, uint32_t bs) {
+      devicenumber = dn;
+      samplerate = sr;
+      buffersize = bs;
 
-    while (!mRemoveNode.empty()) {
-      auto n = mRemoveNode.pop();
-      if (!n) continue;
-      /* should get deleted here */
+      audioclient = new PortaudioClient(devicenumber, renderbuffer);
     }
 
-    return nullptr;
-  }
+    void Close() {
+      if (nullptr != audioclient) {
+        audioclient->close();
+        delete audioclient;
+      }
 
-  void AudioEngine::UpdateNodeIndex(int16_t& id) {
-    if (id < mNodes.size()) {
-      if (mNodes[id]->id == id) return;
+      audioclient = nullptr;
     }
 
-    auto it = std::find_if(mNodes.begin(), mNodes.end(), [&](auto& node) { return node->id == id; });
+    uint32_t DeviceNumber() { return devicenumber; }
+    uint32_t SampleRate() { return samplerate; }
+    uint32_t BufferSize() { return buffersize; }
 
-    if (it == mNodes.end()) id = -1;
-    id = std::distance(mNodes.begin(), it);
-  }
+    void AddNode(Node::node_init iFunc, Node::node_close cFunc) {
+      auto node = std::make_unique<Node>();
+      node->Init = iFunc;
+      node->Close = cFunc;
 
-  void AudioEngine::sendMessage(message_t message) {
-    mMessages.push(message);
-  }
+      node->id = nextid;
+      nextid++;
 
-  void AudioEngine::renderBuffer(float* outputBuffer, uint64_t framesPerBuffer) {
-    memset(outputBuffer, 0, sizeof(float) * framesPerBuffer * 2);
+      node->Init(*node, samplerate, buffersize);
 
-    processMessages();
-
-    if (mNodes.size() == 0) return; /* tf has happend */
-
-    for (auto& node : mNodes) {
-      node->HasRendered = false;
+      /* todo: make this loop back off */
+      while (!addFifo.empty());
+      addFifo.push(std::move(node));
     }
 
-    if (mNodes[0]->getInputs().size() != 2) return; /* ...again... what? */
+    void RemoveNode(int16_t id) {
+      SendMessage(_remove_node{id});
 
-    mNodes[0]->Process();
+      /* wait for the audio thread to put the node that it should 
+       * remove onto the remove fifo.
+       * todo: make this loop back off */
+      while (removeFifo.empty());
 
-    for (auto channel = 0 ; channel < 2 ; channel++) {
-      auto input = mNodes[0]->getInputs()[channel];
-      if (input.connection.cachedNodeIndex == -1) continue;
-
-      float* writeptr = outputBuffer + channel;
-
-      auto& c = mNodes[input.connection.cachedNodeIndex];
-      auto& signal = std::get<audio_signal_t>(c->getOutputs()[input.connection.index]);
-      for (auto i = 0 ; i < framesPerBuffer ; i++) {
-        *writeptr = signal.data[i];
-        writeptr += 2;
+      while (!removeFifo.empty()) {
+        auto n = removeFifo.pop();
+        if (!n) continue;
+        /* now that n owns the unique_ptr, is should be deleted here. */
       }
     }
-  }
 
-  template<class... Ts>
-  struct overloaded : Ts... { using Ts::operator()...; };
+    void UpdateNodeIndex(int16_t& id) {
+      if (id < nodes.size()) {
+        if (nodes[id]->id == id) return;
+      }
 
-  void AudioEngine::processMessages() {
-    while (!mNewNode.empty()) {
-      auto newNode = mNewNode.pop();
-      if (!newNode) continue;
-      mNodes.push_back(std::move(*newNode));
+      auto it = std::find_if(nodes.begin(), nodes.end(), [&](auto& node) { return node->id == id; });
+
+      if (it == nodes.end()) id = -1;
+      id = std::distance(nodes.begin(), it);
     }
 
-    while (!mMessages.empty()) {
-      /* process the messages */
-      auto message = mMessages.pop();
-      if (!message) continue;
-
-      std::visit(overloaded{
-          [&](_remove_node m) { 
-            auto r = std::remove_if(mNodes.begin(), mNodes.end(), [m](auto& node) { return node->id == m.nodeId; });
-            mRemoveNode.push(std::move(*r));
-            mNodes.erase(r, mNodes.end());
-          },
-          [&](_set_connection m) {
-            auto node = std::find_if(mNodes.begin(), mNodes.end(), [m](auto& node) { return node->id == m.NodeA; });
-            (*node)->setInput(m.IndexA, m.NodeB, m.IndexB);
-          }
-          }, *message);
+    Node& GetNode(int16_t id) {
+      return *nodes[id];
     }
-  }
+
+    void SendMessage(message_t message) {
+      messages.push(message);
+    }
+
+    static void processMessages();
+
+    void renderbuffer(float* buffer, uint64_t framesPerBuffer) noexcept {
+      memset(buffer, 0, sizeof(float) * framesPerBuffer * 2);
+
+      processMessages();
+
+      if (nodes.size() == 0) return; /* tf has happend */
+
+      for (auto& node : nodes) {
+        node->HasRendered = false;
+      }
+
+      if (nodes[0]->getInputs().size() != 2) return; /* ...again... what? */
+
+      nodes[0]->Process();
+
+      for (auto channel = 0 ; channel < 2 ; channel++) {
+        auto input = nodes[0]->getInputs()[channel];
+        if (input.connection.cachedNodeIndex == -1) continue;
+
+        float* writeptr = buffer + channel;
+
+        auto& c = nodes[input.connection.cachedNodeIndex];
+        auto& signal = std::get<audio_signal_t>(c->getOutputs()[input.connection.index]);
+        for (auto i = 0 ; i < framesPerBuffer ; i++) {
+          *writeptr = signal.data[i];
+          writeptr += 2;
+        }
+      }
+    }
+
+    template<class... Ts>
+    struct overloaded : Ts... { using Ts::operator()...; };
+
+    static void processMessages() {
+      while (!addFifo.empty()) {
+        auto newNode = addFifo.pop();
+        if (!newNode) continue;
+        nodes.push_back(std::move(*newNode));
+      }
+
+      while (!messages.empty()) {
+          /* process the messages */
+          auto message = messages.pop();
+          if (!message) continue;
+
+          std::visit(overloaded{
+              [&](_remove_node m) { 
+                auto r = std::remove_if(nodes.begin(), nodes.end(), [m](auto& node) { return node->id == m.nodeId; });
+                removeFifo.push(std::move(*r));
+                nodes.erase(r, nodes.end());
+              },
+              [&](_set_connection m) {
+                auto node = std::find_if(nodes.begin(), nodes.end(), [m](auto& node) { return node->id == m.NodeA; });
+                (*node)->setInput(m.IndexA, m.NodeB, m.IndexB);
+              }
+              }, *message);
+      }
+    }
+
+  } // namespace audio 
 
 } // namespace core 

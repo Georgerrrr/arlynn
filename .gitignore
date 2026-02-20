@@ -4,6 +4,7 @@ release/
 .vscode
 .vs
 .venv
+__pycache__/
 
 configure.h
 

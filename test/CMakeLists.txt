@@ -17,7 +17,7 @@ add_executable(unit_tests
 )
 
 target_link_libraries(unit_tests PRIVATE core Catch2WithMain)
-target_include_directories(unit_tests PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_include_directories(unit_tests PRIVATE "${CMAKE_SOURCE_DIR}/arl")
 
 set_property(TARGET unit_tests PROPERTY CXX_STANDARD 20)
 set_property(TARGET unit_tests PROPERTY CXX_STANDARD_REQUIRED ON)

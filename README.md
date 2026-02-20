@@ -6,7 +6,6 @@ By connecting nodes which either generate some signal, or affect the signal in a
 
 ## Dependencies
 
- - wxWidgets
  - Portaudio
  - RtMidi
  - FFTW3
@@ -17,7 +16,7 @@ By connecting nodes which either generate some signal, or affect the signal in a
 mkdir build
 cd build 
 cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release 
-cmake --build .
+make install
 ```
 
 ## Todo

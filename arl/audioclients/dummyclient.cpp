@@ -2,12 +2,9 @@
 
 #include "dummyclient.h"
 
-#include "core/audioengine.h"
+#include "audioengine.h"
 
 const static int channels = 2;
-
-namespace core
-{
 
 DummyClient::DummyClient(int32_t& device, render_t renderfunc)
   : AudioClient(device, renderfunc)
@@ -55,4 +52,3 @@ void DummyClient::dummyCallback(DummyClient* client)
   }
 }
 
-} // namespace core

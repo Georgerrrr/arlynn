@@ -1,10 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
 
-#include "core/fifo.h"
+#include "fifo.h"
 
 using value_t = int;
-using test_t = core::fifo_t<value_t>;
+using test_t = fifo_t<value_t>;
 
 static constexpr auto fifo_length = 4;
 

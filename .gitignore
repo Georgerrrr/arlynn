@@ -3,6 +3,7 @@ build/
 release/
 .vscode
 .vs
+.venv
 
 configure.h
 

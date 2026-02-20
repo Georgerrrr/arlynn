@@ -1,18 +1,15 @@
-find_package(PkgConfig REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
-pkg_check_modules(GTKMM REQUIRED gtkmm-4.0)
-
-find_package("Portaudio" REQUIRED)
-find_package("RTMIDI" REQUIRED)
-find_package("FFTW3" REQUIRED)
+find_package(Portaudio REQUIRED)
+find_package(RTMIDI REQUIRED)
+find_package(FFTW3 REQUIRED)
 
 include(FetchContent)
+
 fetchContent_Declare(
-  pugixml
-  GIT_REPOSITORY https://github.com/zeux/pugixml
-  GIT_TAG v1.14
+  pybind11
+  GIT_REPOSITORY https://github.com/pybind/pybind11
+  GIT_TAG v3.0.1 
 )
 
-FetchContent_MakeAvailable(pugixml)
-set(pugixml_INCLUDE_DIR ${pugixml_SOURCE_DIR}/src)
-set(pugixml_LIBRARIES pugixml)
+FetchContent_MakeAvailable(pybind11)

@@ -12,27 +12,18 @@ set(CMAKE_SCRIPTS_DIR "${CMAKE_SOURCE_DIR}/cmake/scripts")
 include("${CMAKE_SCRIPTS_DIR}/debug-variables.cmake")
 include("${CMAKE_SCRIPTS_DIR}/libraries.cmake")
 
-set(RESOURCE_PATH ${CMAKE_SOURCE_DIR}/res/)
-set(NODE_PATH ${CMAKE_SOURCE_DIR}/res/)
-
-if (${CMAKE_BUILD_TYPE})
-  if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(BUILD_DEBUG)
-  endif()
-endif()
-
-configure_file(${CMAKE_SOURCE_DIR}/src/configure.h.in ${CMAKE_SOURCE_DIR}/src/configure.h)
-
-add_subdirectory(src)
+add_subdirectory(arl)
 add_subdirectory(test)
 
-add_executable(arlynn WIN32 ${SOURCES})
+execute_process(COMMAND ${Python3_EXECUTABLE} -m venv ${CMAKE_SOURCE_DIR}/.venv)
+execute_process(COMMAND ${CMAKE_SOURCE_DIR}/.venv/bin/pip install -r ${CMAKE_SOURCE_DIR}/requirements.txt)
 
-target_link_libraries(arlynn PRIVATE core ${GTKMM_LIBRARIES} ${FFTW3_fftw3_LIBRARY} ${pugixml_LIBRARIES})
-target_include_directories(arlynn PUBLIC  ${SOURCE_HEADERS} ${GTKMM_INCLUDE_DIRS} ${pugixml_INCLUDE_DIR})
+set(PYTHON_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/.venv/lib/python3.14/site-packages/")
+install(TARGETS arl DESTINATION ${PYTHON_LIBRARY_DIR})
 
 file(CREATE_LINK
   "${CMAKE_BINARY_DIR}/compile_commands.json"
   "${CMAKE_SOURCE_DIR}/compile_commands.json"
   SYMBOLIC
 )
+

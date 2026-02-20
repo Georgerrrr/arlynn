@@ -4,9 +4,6 @@
 
 #include "audioclient.h"
 
-namespace core
-{
-
 class DummyClient : public AudioClient
 {
   public:
@@ -28,4 +25,3 @@ class DummyClient : public AudioClient
   static void dummyCallback(DummyClient* client);
 };
 
-} // namespace core
